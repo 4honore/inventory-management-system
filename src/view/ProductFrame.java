@@ -27,12 +27,12 @@ public class ProductFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-        // ====== FORM PANEL ======
+
         JPanel formPanel = new JPanel(new GridLayout(3, 4, 10, 10));
         formPanel.setBorder(BorderFactory.createTitledBorder("Product Details"));
 
         idField = new JTextField();
-        idField.setEditable(false); // ID should not be manually edited
+        idField.setEditable(false);
         nameField = new JTextField();
         categoryField = new JTextField();
         qtyField = new JTextField();
@@ -118,14 +118,14 @@ public class ProductFrame extends JFrame {
                 clearFields();
                 loadProducts();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "❌ Invalid ID or number format!");
+                JOptionPane.showMessageDialog(this, " Invalid ID or number format!");
             }
         });
 
         deleteBtn.addActionListener(e -> {
             try {
                 if (idField.getText().trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "⚠️ Please select a product from the table to delete!");
+                    JOptionPane.showMessageDialog(this, " Please select a product from the table to delete!");
                     return;
                 }
                 
@@ -141,7 +141,7 @@ public class ProductFrame extends JFrame {
                     loadProducts();
                 }
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "⚠️ Invalid ID!");
+                JOptionPane.showMessageDialog(this, " Invalid ID!");
             }
         });
 

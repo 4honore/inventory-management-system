@@ -21,6 +21,10 @@ public class DashboardFrame extends JFrame {
     private JLabel salesTodayLabel;
     private JLabel purchasesTodayLabel;
     private JLabel lowStockLabel;
+    
+    // Define two main colors for the entire dashboard
+    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);   // Professional Blue
+    private static final Color SECONDARY_COLOR = new Color(52, 73, 94);   // Dark Gray-Blue
 
     public DashboardFrame() {
 
@@ -32,7 +36,7 @@ public class DashboardFrame extends JFrame {
 
         // ===== HEADER =====
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(70, 130, 180));
+        headerPanel.setBackground(PRIMARY_COLOR);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         
         JLabel header = new JLabel("Inventory Management Dashboard", SwingConstants.CENTER);
@@ -40,7 +44,7 @@ public class DashboardFrame extends JFrame {
         header.setForeground(Color.WHITE);
         
         JButton refreshBtn = new JButton("🔄 Refresh");
-        refreshBtn.setBackground(new Color(60, 179, 113));
+        refreshBtn.setBackground(SECONDARY_COLOR);
         refreshBtn.setForeground(Color.WHITE);
         refreshBtn.setFocusPainted(false);
         refreshBtn.addActionListener(e -> loadDashboardData());
@@ -52,14 +56,15 @@ public class DashboardFrame extends JFrame {
         // ===== CENTER PANEL (Grid for statistics) =====
         JPanel statsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
         statsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        statsPanel.setBackground(Color.WHITE);
 
-        productCountLabel = createCard("Total Products", "0", new Color(135, 206, 250));
-        supplierCountLabel = createCard("Total Suppliers", "0", new Color(152, 251, 152));
-        salesTodayLabel = createCard("Total Sales", "0 RWF", new Color(255, 182, 193));
-        purchasesTodayLabel = createCard("Total Purchases", "0 RWF", new Color(221, 160, 221));
-        lowStockLabel = createCard("Low Stock Items", "0", new Color(255, 218, 185));
+        productCountLabel = createCard("Total Products", "0", PRIMARY_COLOR);
+        supplierCountLabel = createCard("Total Suppliers", "0", PRIMARY_COLOR);
+        salesTodayLabel = createCard("Total Sales", "0 RWF", PRIMARY_COLOR);
+        purchasesTodayLabel = createCard("Total Purchases", "0 RWF", PRIMARY_COLOR);
+        lowStockLabel = createCard("Low Stock Items", "0", SECONDARY_COLOR);
         
-        JLabel netProfitLabel = createCard("Net Profit", "0 RWF", new Color(173, 216, 230));
+        JLabel netProfitLabel = createCard("Net Profit", "0 RWF", SECONDARY_COLOR);
 
         statsPanel.add(productCountLabel);
         statsPanel.add(supplierCountLabel);
@@ -71,23 +76,22 @@ public class DashboardFrame extends JFrame {
         add(statsPanel, BorderLayout.CENTER);
 
         // ===== SIDE MENU BUTTONS =====
-        JPanel menuPanel = new JPanel(new GridLayout(7, 1, 10, 10));
+        JPanel menuPanel = new JPanel(new GridLayout(6, 1, 10, 10));
         menuPanel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
+        menuPanel.setBackground(Color.WHITE);
 
-        JButton productBtn = createStyledButton("📦 Manage Products", new Color(70, 130, 180));
-        JButton supplierBtn = createStyledButton("🏢 Manage Suppliers", new Color(60, 179, 113));
-        JButton transBtn = createStyledButton("💰 Manage Transactions", new Color(255, 165, 0));
-        JButton reportBtn = createStyledButton("📊 View Reports", new Color(138, 43, 226));
-        JButton userBtn = createStyledButton("👥 Manage Users", new Color(184, 134, 11));
-        JButton aboutBtn = createStyledButton("ℹ️ About System", new Color(100, 149, 237));
-        JButton logoutBtn = createStyledButton("🚪 Logout", new Color(220, 20, 60));
+        JButton productBtn = createStyledButton(" Manage Products", PRIMARY_COLOR);
+        JButton supplierBtn = createStyledButton(" Manage Suppliers", PRIMARY_COLOR);
+        JButton transBtn = createStyledButton(" Manage Transactions", PRIMARY_COLOR);
+        JButton reportBtn = createStyledButton(" View Reports", PRIMARY_COLOR);
+        JButton userBtn = createStyledButton(" Manage Users", SECONDARY_COLOR);
+        JButton logoutBtn = createStyledButton(" Logout", SECONDARY_COLOR);
 
         menuPanel.add(productBtn);
         menuPanel.add(supplierBtn);
         menuPanel.add(transBtn);
         menuPanel.add(reportBtn);
         menuPanel.add(userBtn);
-        menuPanel.add(aboutBtn);
         menuPanel.add(logoutBtn);
 
         add(menuPanel, BorderLayout.EAST);
@@ -98,34 +102,6 @@ public class DashboardFrame extends JFrame {
         transBtn.addActionListener(e -> new TransactionFrame());
         reportBtn.addActionListener(e -> new ReportFrame());
         userBtn.addActionListener(e -> new UserManagementFrame());
-        
-        aboutBtn.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,
-                "═══════════════════════════════════════\n" +
-                "  INVENTORY MANAGEMENT SYSTEM v1.0\n" +
-                "═══════════════════════════════════════\n\n" +
-                "Developed by: Ishimwe Honore\n" +
-                "Course: JAVA PROGRAMMING (INSY 7312)\n" +
-                "Instructor: Dr SEBAGENZI Jason\n" +
-                "           & Jeremie U. Tuyisenge\n\n" +
-                "Features:\n" +
-                "• Product Management (CRUD)\n" +
-                "• Supplier Management (CRUD)\n" +
-                "• Transaction Processing\n" +
-                "• User Management & Authentication\n" +
-                "• Comprehensive Reports & Analytics\n" +
-                "• Business & Technical Validations\n\n" +
-                "Design Patterns:\n" +
-                "• Model-View-Controller (MVC)\n" +
-                "• Data Access Object (DAO)\n\n" +
-                "Technologies:\n" +
-                "• Java Swing GUI\n" +
-                "• JDBC API\n" +
-                "• MySQL Database\n" +
-                "═══════════════════════════════════════",
-                "About System",
-                JOptionPane.INFORMATION_MESSAGE);
-        });
         
         logoutBtn.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(this,
@@ -150,15 +126,15 @@ public class DashboardFrame extends JFrame {
         JLabel label = new JLabel(
             "<html><center>" +
             "<div style='padding: 20px;'>" +
-            "<h2 style='margin: 5px; color: #2c3e50;'>" + title + "</h2>" +
-            "<h1 style='margin: 10px; color: #34495e; font-size: 28px;'>" + value + "</h1>" +
+            "<h2 style='margin: 5px; color: white;'>" + title + "</h2>" +
+            "<h1 style='margin: 10px; color: white; font-size: 28px;'>" + value + "</h1>" +
             "</div>" +
             "</center></html>"
         );
         label.setOpaque(true);
         label.setBackground(bgColor);
         label.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         label.setHorizontalAlignment(SwingConstants.CENTER);
@@ -239,8 +215,8 @@ public class DashboardFrame extends JFrame {
         card.setText(
             "<html><center>" +
             "<div style='padding: 20px;'>" +
-            "<h2 style='margin: 5px; color: #2c3e50;'>" + title + "</h2>" +
-            "<h1 style='margin: 10px; color: #34495e; font-size: 28px;'>" + value + "</h1>" +
+            "<h2 style='margin: 5px; color: white;'>" + title + "</h2>" +
+            "<h1 style='margin: 10px; color: white; font-size: 28px;'>" + value + "</h1>" +
             "</div>" +
             "</center></html>"
         );
