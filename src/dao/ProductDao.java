@@ -99,6 +99,21 @@ public class ProductDao {
 
         return product;
     }
+    
+    public void updateProductQuantity(int productId, int newQuantity) {
+        String sql = "UPDATE products SET quantity = ? WHERE product_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            pst.setInt(1, newQuantity);
+            pst.setInt(2, productId);
+            
+            pst.executeUpdate();
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "❌ Failed to update product quantity: " + e.getMessage());
+        }
+    }
     // Retrieve all products
     public List<Product> getAllProducts() {
         List<Product> products = new ArrayList<>();

@@ -90,7 +90,7 @@ public class TransactionFrame extends JFrame {
                 String type = typeField.getText();
                 Timestamp date = new Timestamp(System.currentTimeMillis());
 
-                controller.addTransaction(productId, qty, type, total, date);
+                controller.addTransaction(productId, qty, type, total);
                 clearFields();
                 loadTransactions();
 
@@ -112,7 +112,7 @@ public class TransactionFrame extends JFrame {
                 String type = typeField.getText();
                 Timestamp date = new Timestamp(System.currentTimeMillis());
 
-                controller.updateTransaction(id, productId, qty, type, total, date);
+                controller.addTransaction(productId, qty, type, total);
                 clearFields();
                 loadTransactions();
 

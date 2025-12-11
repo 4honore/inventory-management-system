@@ -33,7 +33,7 @@ public class ProductFrame extends JFrame {
         if (!UserSession.hasAnyRole("ADMIN", "MANAGER", "STAFF")) {
             JOptionPane.showMessageDialog(null, "You are not authorized to access the Products module.", "Permission Denied", JOptionPane.ERROR_MESSAGE);
             // Must safely dispose the frame on the EDT
-            SwingUtilities.invokeLater(this::dispose); 
+            SwingUtilities.invokeLater(this::dispose);
             return; // Prevents frame initialization
         }
         
