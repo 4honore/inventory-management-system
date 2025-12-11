@@ -73,6 +73,32 @@ public class ProductDao {
         }
     }
 
+    public Product getProductById(int productId) {
+        String sql = "SELECT * FROM products WHERE product_id = ?";
+        Product product = null;
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            pst.setInt(1, productId);
+            ResultSet rs = pst.executeQuery();
+
+            if (rs.next()) {
+                product = new Product();
+                product.setProductId(rs.getInt("product_id"));
+                product.setName(rs.getString("name"));
+                product.setCategory(rs.getString("category"));
+                product.setQuantity(rs.getInt("quantity"));
+                product.setPrice(rs.getDouble("price"));
+                product.setSupplierId(rs.getInt("supplier_id"));
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "❌ Failed to retrieve product by ID: " + e.getMessage());
+        }
+
+        return product;
+    }
     // Retrieve all products
     public List<Product> getAllProducts() {
         List<Product> products = new ArrayList<>();

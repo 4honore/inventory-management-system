@@ -2,16 +2,14 @@ package view;
 
 import controller.ProductController;
 import model.Product;
+import model.UserSession; // NEW IMPORT
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * ProductFrame - The View component for Product Management.
- * * NOTE: The action listeners below now handle all UI messages (JOptionPane)
- * based on the success or failure (Exception) returned by the Controller.
- */
 public class ProductFrame extends JFrame {
 
     private final ProductController controller;
@@ -19,19 +17,47 @@ public class ProductFrame extends JFrame {
     private final JTable table;
     private final DefaultTableModel model;
     
-    // Assuming these buttons are defined as fields in your original code
-    private JButton addButton, updateButton, deleteButton, clearButton;
+    // Define CRUD buttons globally
+    private JButton addButton, updateButton, deleteButton;
+
+    // Define colors for consistency
+    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
+    private static final Color SUCCESS_COLOR = new Color(39, 174, 96);
+    private static final Color WARNING_COLOR = new Color(243, 156, 18);
+    private static final Color DANGER_COLOR = new Color(192, 57, 43);
 
     public ProductFrame() {
         controller = new ProductController();
 
-        setTitle("Inventory Management - Product Module");
-        setSize(900, 600);
+        // 1. Security Check: Block unauthorized access
+        if (!UserSession.hasAnyRole("ADMIN", "MANAGER", "STAFF")) {
+            JOptionPane.showMessageDialog(null, "You are not authorized to access the Products module.", "Permission Denied", JOptionPane.ERROR_MESSAGE);
+            // Must safely dispose the frame on the EDT
+            SwingUtilities.invokeLater(this::dispose); 
+            return; // Prevents frame initialization
+        }
+        
+        // Check if the user is authorized to perform modifications
+        boolean canModify = UserSession.hasAnyRole("ADMIN", "MANAGER");
+
+        setTitle("Inventory Management - Product Module (" + (canModify ? "Full Access" : "Read-Only") + ")");
+        setSize(1000, 650);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
+        // ===== HEADER =====
+        JLabel header = new JLabel("Product Management", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 24));
+        header.setForeground(Color.WHITE);
+        JPanel headerPanel = new JPanel();
+        headerPanel.setBackground(PRIMARY_COLOR);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        headerPanel.add(header);
+        add(headerPanel, BorderLayout.NORTH);
 
+
+        // ===== INPUT FORM PANEL =====
         JPanel formPanel = new JPanel(new GridLayout(3, 4, 10, 10));
         formPanel.setBorder(BorderFactory.createTitledBorder("Product Details"));
 
@@ -41,7 +67,7 @@ public class ProductFrame extends JFrame {
         categoryField = new JTextField();
         qtyField = new JTextField();
         priceField = new JTextField();
-        supplierField = new JTextField();
+        supplierField = new JTextField(); // Note: Should ideally be a JComboBox of suppliers
 
         formPanel.add(new JLabel("Product ID:"));
         formPanel.add(idField);
@@ -49,164 +75,131 @@ public class ProductFrame extends JFrame {
         formPanel.add(nameField);
         formPanel.add(new JLabel("Category:"));
         formPanel.add(categoryField);
-        formPanel.add(new JLabel("Quantity:"));
+        formPanel.add(new JLabel("Quantity (Qty):"));
         formPanel.add(qtyField);
         formPanel.add(new JLabel("Price (RWF):"));
         formPanel.add(priceField);
         formPanel.add(new JLabel("Supplier ID:"));
         formPanel.add(supplierField);
 
-        // ===== BUTTON PANEL (Assuming buttons are initialized here) =====
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        addButton = new JButton("Add Product");
-        updateButton = new JButton("Update Product");
-        deleteButton = new JButton("Delete Product");
-        clearButton = new JButton("Clear Fields");
+        // ===== BUTTON PANEL (RBAC IMPLEMENTATION HERE) =====
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
         
-        buttonPanel.add(addButton);
-        buttonPanel.add(updateButton);
-        buttonPanel.add(deleteButton);
+        addButton = createStyledButton("➕ Add Product", SUCCESS_COLOR);
+        updateButton = createStyledButton("📝 Update Product", WARNING_COLOR);
+        deleteButton = createStyledButton("🗑️ Delete Product", DANGER_COLOR);
+        JButton clearButton = createStyledButton("🧹 Clear Fields", new Color(108, 117, 125)); // Non-CRUD action
+
+        // --- RBAC: Enable/Disable/Hide CRUD buttons based on role ---
+        if (canModify) {
+            buttonPanel.add(addButton);
+            buttonPanel.add(updateButton);
+            buttonPanel.add(deleteButton);
+        } else {
+            // Read-Only users have all input fields non-editable for safety
+            nameField.setEditable(false);
+            categoryField.setEditable(false);
+            qtyField.setEditable(false);
+            priceField.setEditable(false);
+            supplierField.setEditable(false);
+        }
+        
         buttonPanel.add(clearButton);
         
-        // ===== TABLE SETUP =====
-        model = new DefaultTableModel(new String[]{"ID", "Name", "Category", "Quantity", "Price", "Supplier ID"}, 0);
+        JPanel controlsPanel = new JPanel(new BorderLayout());
+        controlsPanel.add(formPanel, BorderLayout.NORTH);
+        controlsPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        add(controlsPanel, BorderLayout.NORTH);
+
+        // ===== TABLE PANEL =====
+        String[] columnNames = {"ID", "Name", "Category", "Quantity", "Price", "Supplier ID"};
+        model = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // All cells non-editable
+            }
+        };
         table = new JTable(model);
         JScrollPane scrollPane = new JScrollPane(table);
-
-        // Add components to the frame
-        add(formPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
 
-        // =================================================================
-        // ===== REFACTORED BUTTON ACTIONS - UI LOGIC NOW HERE IN THE VIEW =====
-        // =================================================================
 
-        // ADD Button Action Listener
+        // ===== BUTTON LISTENERS (With robust input parsing) =====
+
         addButton.addActionListener(e -> {
-            try {
-                // Input conversion (local validation)
-                String name = nameField.getText();
-                String category = categoryField.getText();
-                int qty = Integer.parseInt(qtyField.getText());
-                double price = Double.parseDouble(priceField.getText());
-                int supplierId = Integer.parseInt(supplierField.getText());
-
-                // Call the Controller (Controller throws Exception on validation/DB failure)
-                controller.addProduct(name, category, qty, price, supplierId);
-                
-                // SUCCESS HANDLING (The View displays the result!)
-                JOptionPane.showMessageDialog(this, 
-                    "✅ Product added successfully!", 
-                    "Success", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                
-                clearFields();
-                loadProducts(); // Refresh the table
-                
-            } catch (NumberFormatException ex) {
-                // CATCH 1: Handles invalid number input
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Please enter valid numbers for Quantity, Price, and Supplier ID.", 
-                    "Input Error", 
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (Exception ex) {
-                // CATCH 2: Handles Business Logic (Validation) or Database Error
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Operation Failed: " + ex.getMessage(), 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
+            if (canModify) {
+                try {
+                    String name = nameField.getText();
+                    String category = categoryField.getText();
+                    // Handle potential NumberFormatExceptions
+                    int quantity = Integer.parseInt(qtyField.getText().trim());
+                    double price = Double.parseDouble(priceField.getText().trim());
+                    int supplierId = Integer.parseInt(supplierField.getText().trim());
+                    
+                    // Controller handles business validation (e.g., negative quantity, empty name)
+                    controller.addProduct(name, category, quantity, price, supplierId);
+                    
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "❌ Quantity, Price, and Supplier ID must be valid numbers.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "❌ An unexpected error occurred: " + ex.getMessage(), "System Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
+            loadProducts();
+            clearFields();
         });
 
-        // UPDATE Button Action Listener
         updateButton.addActionListener(e -> {
-            try {
-                // Basic check for ID field
-                if (idField.getText().trim().isEmpty()) {
-                    throw new Exception("Please select a product to update.");
-                }
-                
-                // Input conversion
-                int id = Integer.parseInt(idField.getText());
-                String name = nameField.getText();
-                String category = categoryField.getText();
-                int qty = Integer.parseInt(qtyField.getText());
-                double price = Double.parseDouble(priceField.getText());
-                int supplierId = Integer.parseInt(supplierField.getText());
+            if (canModify) {
+                try {
+                    if (idField.getText().isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Please select a product to update.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    int id = Integer.parseInt(idField.getText());
+                    String name = nameField.getText();
+                    String category = categoryField.getText();
+                    int quantity = Integer.parseInt(qtyField.getText().trim());
+                    double price = Double.parseDouble(priceField.getText().trim());
+                    int supplierId = Integer.parseInt(supplierField.getText().trim());
 
-                controller.updateProduct(id, name, category, qty, price, supplierId);
-                
-                // SUCCESS HANDLING
-                JOptionPane.showMessageDialog(this, 
-                    "✅ Product updated successfully!", 
-                    "Success", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                
-                clearFields();
-                loadProducts(); 
-                
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Invalid numeric input.", 
-                    "Input Error", 
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Update Failed: " + ex.getMessage(), 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
+                    controller.updateProduct(id, name, category, quantity, price, supplierId);
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "❌ Quantity, Price, and Supplier ID must be valid numbers.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "❌ An unexpected error occurred: " + ex.getMessage(), "System Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
+            loadProducts();
+            clearFields();
         });
 
-        // DELETE Button Action Listener
         deleteButton.addActionListener(e -> {
-            try {
-                // Basic check for ID field
-                if (idField.getText().trim().isEmpty()) {
-                    throw new Exception("Please select a product to delete.");
-                }
-                int id = Integer.parseInt(idField.getText());
-                
-                // Confirmation dialog (View logic)
-                int confirm = JOptionPane.showConfirmDialog(this, 
-                    "Are you sure you want to delete Product ID: " + id + "?", 
-                    "Confirm Delete", 
-                    JOptionPane.YES_NO_OPTION);
-
-                if (confirm == JOptionPane.YES_OPTION) {
+            if (canModify) {
+                try {
+                    if (idField.getText().isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Please select a product to delete.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    int id = Integer.parseInt(idField.getText());
                     controller.deleteProduct(id);
-                    
-                    // SUCCESS HANDLING
-                    JOptionPane.showMessageDialog(this, 
-                        "✅ Product deleted successfully!", 
-                        "Success", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                    
-                    clearFields();
-                    loadProducts(); 
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Internal Error: Invalid Product ID.", "System Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "❌ An unexpected error occurred: " + ex.getMessage(), "System Error", JOptionPane.ERROR_MESSAGE);
                 }
-                
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Invalid Product ID format.", 
-                    "Input Error", 
-                    JOptionPane.ERROR_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "❌ Deletion Failed: " + ex.getMessage(), 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
             }
+            loadProducts();
+            clearFields();
         });
-        
-        // CLEAR Button Action Listener
+
         clearButton.addActionListener(e -> clearFields());
 
-
-        // Table row click listener (remains the same)
-        table.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
+        // ===== TABLE SELECTION LISTENER =====
+        table.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent evt) {
                 int selectedRow = table.getSelectedRow();
                 if (selectedRow != -1) {
                     idField.setText(model.getValueAt(selectedRow, 0).toString());
@@ -223,8 +216,16 @@ public class ProductFrame extends JFrame {
         loadProducts();
         setVisible(true);
     }
-
-    // ====== HELPER METHODS (Should remain the same) ======\r\n
+    
+    // ===== Helper Methods =====
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        return button;
+    }
 
     private void loadProducts() {
         model.setRowCount(0); // clear existing rows
@@ -248,5 +249,6 @@ public class ProductFrame extends JFrame {
         qtyField.setText("");
         priceField.setText("");
         supplierField.setText("");
+        table.clearSelection();
     }
 }

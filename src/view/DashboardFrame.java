@@ -1,224 +1,337 @@
 package view;
 
-import dao.ProductDao;
-import dao.SupplierDao;
-import dao.TransactionDao;
-import model.Product;
-import model.Transaction;
+import controller.DashboardController;
+import model.DashboardMetrics;
+import model.UserSession; 
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.DecimalFormat;
 
+/**
+ * DashboardFrame - System Overview and Main Navigation Hub.
+ * Now implements Role-Based Access Control (RBAC) and updated colors.
+ */
 public class DashboardFrame extends JFrame {
 
-    private final ProductDao productDao = new ProductDao();
-    private final SupplierDao supplierDao = new SupplierDao();
-    private final TransactionDao transactionDao = new TransactionDao();
+    private final DashboardController controller;
 
-    private JLabel productCountLabel;
-    private JLabel supplierCountLabel;
-    private JLabel salesTodayLabel;
-    private JLabel purchasesTodayLabel;
-    private JLabel lowStockLabel;
-    
-    // Define two main colors for the entire dashboard
+    // Card Panels and Labels
+    private JPanel productCard, supplierCard, lowStockCard;
+    private JLabel productCountLabel, supplierCountLabel, lowStockLabel; 
+    private JPanel salesCard, purchasesCard, profitCard; 
+    private JLabel salesTodayLabel, purchasesTodayLabel, netProfitLabel;
+
+    // Define colors (Matching LoginFrame layout)
     private static final Color PRIMARY_COLOR = new Color(41, 128, 185);   // Professional Blue
-    private static final Color SECONDARY_COLOR = new Color(52, 73, 94);   // Dark Gray-Blue
+    private static final Color BACKGROUND_COLOR = new Color(236, 240, 241); // Light Gray (New)
+    private static final Color SECONDARY_COLOR = new Color(52, 73, 94);   // Dark Gray-Blue (For Card backgrounds)
+    private static final Color PROFIT_COLOR = new Color(39, 174, 96);     // Green
+    private static final Color LOSS_COLOR = new Color(192, 57, 43);       // Red
+    private static final Color NAV_COLOR = new Color(44, 62, 80);         // Navigation Background
+    private static final Color CLICK_EFFECT_COLOR = new Color(70, 96, 118); 
 
     public DashboardFrame() {
+        controller = new DashboardController();
 
-        setTitle("Inventory Management - Dashboard");
-        setSize(950, 600);
+        // Security Check: If no user is logged in, redirect to login
+        if (UserSession.getCurrentUser() == null) {
+            JOptionPane.showMessageDialog(null, "Session expired or unauthorized access. Please log in.", "Authorization Error", JOptionPane.ERROR_MESSAGE);
+            new LoginFrame().setVisible(true);
+            return; // Exit constructor to prevent frame from showing
+        }
+        
+        // Display logged-in user details in the title
+        String userRole = UserSession.getCurrentUser().getRole();
+        String username = UserSession.getCurrentUser().getUsername();
+        setTitle("Inventory Management - Dashboard & Navigation (" + username + " | " + userRole + ")");
+        
+        setSize(1200, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(20, 20));
+        setLayout(new BorderLayout(10, 10));
 
-        // ===== HEADER =====
+        // Set the frame's background to the new light color
+        getContentPane().setBackground(BACKGROUND_COLOR);
+
+        // ===== NAVIGATION PANEL (WEST) =====
+        JPanel navPanel = createNavigationPanel();
+        add(navPanel, BorderLayout.WEST);
+
+        // ===== MAIN CONTENT PANEL (CENTER) =====
+        JPanel mainContentPanel = new JPanel(new BorderLayout(10, 10));
+        mainContentPanel.setBackground(BACKGROUND_COLOR); // Set content panel background
+        
+        // --- Header ---
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(PRIMARY_COLOR);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         
-        JLabel header = new JLabel("Inventory Management Dashboard", SwingConstants.CENTER);
-        header.setFont(new Font("Arial", Font.BOLD, 26));
-        header.setForeground(Color.WHITE);
+        JLabel titleLabel = new JLabel("System Overview", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel, BorderLayout.CENTER);
         
-        JButton refreshBtn = new JButton("🔄 Refresh");
-        refreshBtn.setBackground(SECONDARY_COLOR);
-        refreshBtn.setForeground(Color.WHITE);
-        refreshBtn.setFocusPainted(false);
-        refreshBtn.addActionListener(e -> loadDashboardData());
+        mainContentPanel.add(headerPanel, BorderLayout.NORTH);
+
+        // --- Cards Panel ---
+        JPanel cardsPanel = createCardsPanel();
+        mainContentPanel.add(cardsPanel, BorderLayout.CENTER);
         
-        headerPanel.add(header, BorderLayout.CENTER);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
-
-        // ===== CENTER PANEL (Grid for statistics) =====
-        JPanel statsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        statsPanel.setBackground(Color.WHITE);
-
-        productCountLabel = createCard("Total Products", "0", PRIMARY_COLOR);
-        supplierCountLabel = createCard("Total Suppliers", "0", PRIMARY_COLOR);
-        salesTodayLabel = createCard("Total Sales", "0 RWF", PRIMARY_COLOR);
-        purchasesTodayLabel = createCard("Total Purchases", "0 RWF", PRIMARY_COLOR);
-        lowStockLabel = createCard("Low Stock Items", "0", SECONDARY_COLOR);
+        add(mainContentPanel, BorderLayout.CENTER);
         
-        JLabel netProfitLabel = createCard("Net Profit", "0 RWF", SECONDARY_COLOR);
-
-        statsPanel.add(productCountLabel);
-        statsPanel.add(supplierCountLabel);
-        statsPanel.add(salesTodayLabel);
-        statsPanel.add(purchasesTodayLabel);
-        statsPanel.add(lowStockLabel);
-        statsPanel.add(netProfitLabel);
-
-        add(statsPanel, BorderLayout.CENTER);
-
-        // ===== SIDE MENU BUTTONS =====
-        JPanel menuPanel = new JPanel(new GridLayout(6, 1, 10, 10));
-        menuPanel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
-        menuPanel.setBackground(Color.WHITE);
-
-        JButton productBtn = createStyledButton(" Manage Products", PRIMARY_COLOR);
-        JButton supplierBtn = createStyledButton(" Manage Suppliers", PRIMARY_COLOR);
-        JButton transBtn = createStyledButton(" Manage Transactions", PRIMARY_COLOR);
-        JButton reportBtn = createStyledButton(" View Reports", PRIMARY_COLOR);
-        JButton userBtn = createStyledButton(" Manage Users", SECONDARY_COLOR);
-        JButton logoutBtn = createStyledButton(" Logout", SECONDARY_COLOR);
-
-        menuPanel.add(productBtn);
-        menuPanel.add(supplierBtn);
-        menuPanel.add(transBtn);
-        menuPanel.add(reportBtn);
-        menuPanel.add(userBtn);
-        menuPanel.add(logoutBtn);
-
-        add(menuPanel, BorderLayout.EAST);
-
-        // ===== BUTTON ACTIONS =====
-        productBtn.addActionListener(e -> new ProductFrame());
-        supplierBtn.addActionListener(e -> new SupplierFrame());
-        transBtn.addActionListener(e -> new TransactionFrame());
-        reportBtn.addActionListener(e -> new ReportFrame());
-        userBtn.addActionListener(e -> new UserManagementFrame());
-        
-        logoutBtn.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to logout?",
-                "Logout Confirmation",
-                JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                this.dispose();
-                new LoginFrame();
-            }
-        });
-
-        // Load dashboard data initially
         loadDashboardData();
-
         setVisible(true);
     }
-
-    // ===== Helper method to create statistic cards =====
-    private JLabel createCard(String title, String value, Color bgColor) {
-        JLabel label = new JLabel(
-            "<html><center>" +
-            "<div style='padding: 20px;'>" +
-            "<h2 style='margin: 5px; color: white;'>" + title + "</h2>" +
-            "<h1 style='margin: 10px; color: white; font-size: 28px;'>" + value + "</h1>" +
-            "</div>" +
-            "</center></html>"
-        );
-        label.setOpaque(true);
-        label.setBackground(bgColor);
-        label.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        return label;
-    }
     
-    // ===== Helper method to create styled buttons =====
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton button = new JButton(text);
-        button.setBackground(bgColor);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 13));
-        button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    // =================================================================
+    //                    NAVIGATION PANEL SETUP (RBAC IMPLEMENTATION)
+    // =================================================================
+
+    private JPanel createNavigationPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(NAV_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
+
+        // Title/Logo Placeholder
+        JLabel logoLabel = new JLabel("INVENTORY HUB", SwingConstants.CENTER);
+        logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        logoLabel.setForeground(Color.WHITE); // White for high contrast on dark nav panel
+        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(logoLabel);
+        panel.add(Box.createVerticalStrut(30)); 
+
+        // 1. Dashboard (Always accessible)
+        addButton(panel, "📊 Dashboard", e -> {/* Already here */});
         
-        // Add hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor.darker());
+        // 2. Products, Suppliers, Transactions (Operational Access: ADMIN, MANAGER, STAFF)
+        if (UserSession.hasAnyRole("ADMIN", "MANAGER", "STAFF")) {
+            addButton(panel, "📦 Products", e -> new ProductFrame().setVisible(true));
+            addButton(panel, "👥 Suppliers", e -> new SupplierFrame().setVisible(true));
+            addButton(panel, "💵 Transactions", e -> new TransactionFrame().setVisible(true));
+        }
+
+        // 3. Reports (Managerial Access: ADMIN, MANAGER)
+        if (UserSession.hasAnyRole("ADMIN", "MANAGER")) {
+            addButton(panel, "📈 Reports", e -> new ReportFrame().setVisible(true));
+        }
+        
+        // 4. User Management (Admin Exclusive Access)
+        if (UserSession.hasRole("ADMIN")) {
+            addButton(panel, "⚙️ Users", e -> new UserManagementFrame().setVisible(true));
+        }
+        
+        // Logout button at the bottom (Always accessible)
+        panel.add(Box.createVerticalGlue());
+        
+        // FIX: Update Logout action to call UserSession.logout()
+        addButton(panel, "🚪 Logout", e -> {
+            UserSession.logout(); // Clear the session
+            this.dispose();
+            new LoginFrame().setVisible(true); 
+        });
+
+        return panel;
+    }
+
+    private void addButton(JPanel panel, String text, ActionListener listener) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Arial", Font.PLAIN, 16));
+        button.setForeground(Color.WHITE);
+        button.setBackground(NAV_COLOR);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setMaximumSize(new Dimension(200, 40));
+        
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(PRIMARY_COLOR);
             }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor);
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(NAV_COLOR);
             }
         });
         
-        return button;
+        button.addActionListener(listener);
+        panel.add(button);
+        panel.add(Box.createVerticalStrut(10));
     }
 
-    // ===== Load dashboard data =====
-    private void loadDashboardData() {
-        // Total products
-        List<Product> products = productDao.getAllProducts();
-        updateCard(productCountLabel, "Total Products", String.valueOf(products.size()));
 
-        // Suppliers count
-        updateCard(supplierCountLabel, "Total Suppliers", String.valueOf(supplierDao.getAllSupplier().size()));
+    // =================================================================
+    //                         CARDS PANEL SETUP (COLOR CHANGE)
+    // =================================================================
 
-        // Transactions
-        List<Transaction> transactions = transactionDao.getAllTransactions();
+    private JPanel createCardsPanel() {
+        JPanel cardsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
+        cardsPanel.setBackground(BACKGROUND_COLOR); // <-- NEW: Set card container background to light gray
+        cardsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        double sales = 0;
-        double purchases = 0;
-        int lowStockCount = 0;
-
-        for (Transaction t : transactions) {
-            if (t.getType().equalsIgnoreCase("SALE")) {
-                sales += t.getTotal();
-            } else if (t.getType().equalsIgnoreCase("PURCHASE")) {
-                purchases += t.getTotal();
-            }
-        }
-
-        // Low stock calculation
-        for (Product p : products) {
-            if (p.getQuantity() < 10) {
-                lowStockCount++;
-            }
-        }
+        // 1. Initialize Labels
+        productCountLabel = new JLabel("0");
+        supplierCountLabel = new JLabel("0");
+        lowStockLabel = new JLabel("0");
+        salesTodayLabel = new JLabel("0 RWF");
+        purchasesTodayLabel = new JLabel("0 RWF");
+        netProfitLabel = new JLabel("0 RWF");
         
-        // Calculate net profit
-        double profit = sales - purchases;
+        // 2. Create Clickable Cards (JPanels)
+        productCard = createCardPanel("Total Products", productCountLabel, SECONDARY_COLOR);
+        supplierCard = createCardPanel("Total Suppliers", supplierCountLabel, SECONDARY_COLOR);
+        lowStockCard = createCardPanel("Low Stock Items", lowStockLabel, LOSS_COLOR);
+        salesCard = createCardPanel("Total Sales", salesTodayLabel, SECONDARY_COLOR);
+        purchasesCard = createCardPanel("Total Purchases", purchasesTodayLabel, SECONDARY_COLOR);
+        profitCard = createCardPanel("Net Profit", netProfitLabel, PROFIT_COLOR);
 
-        updateCard(salesTodayLabel, "Total Sales", String.format("%.0f RWF", sales));
-        updateCard(purchasesTodayLabel, "Total Purchases", String.format("%.0f RWF", purchases));
-        updateCard(lowStockLabel, "Low Stock Items", String.valueOf(lowStockCount));
+        // 3. Add Mouse Listeners for Navigation (Quick links)
+        addProductNavigation(productCard);
+        addProductNavigation(lowStockCard); 
+        addSupplierNavigation(supplierCard);
         
-        // Update the 6th card (net profit)
-        Component[] components = ((JPanel)getContentPane().getComponent(1)).getComponents();
-        if (components.length > 5) {
-            JLabel profitLabel = (JLabel) components[5];
-            updateCard(profitLabel, "Net Profit", String.format("%.0f RWF", profit));
-        }
+        // 4. Add generic listeners to financial cards to prevent the error
+        addFinancialCardListener(salesCard, SECONDARY_COLOR);
+        addFinancialCardListener(purchasesCard, SECONDARY_COLOR);
+        addFinancialCardListener(profitCard, PROFIT_COLOR); 
+
+        cardsPanel.add(productCard);
+        cardsPanel.add(supplierCard);
+        cardsPanel.add(lowStockCard);
+        cardsPanel.add(salesCard);
+        cardsPanel.add(purchasesCard);
+        cardsPanel.add(profitCard);
+        
+        return cardsPanel;
     }
     
-    // ===== Helper method to update card values =====
-    private void updateCard(JLabel card, String title, String value) {
-        card.setText(
-            "<html><center>" +
-            "<div style='padding: 20px;'>" +
-            "<h2 style='margin: 5px; color: white;'>" + title + "</h2>" +
-            "<h1 style='margin: 10px; color: white; font-size: 28px;'>" + value + "</h1>" +
-            "</div>" +
-            "</center></html>"
-        );
+    // Method to create the clickable JPanel card
+    private JPanel createCardPanel(String title, JLabel valueLabel, Color bgColor) {
+        JPanel card = new JPanel(new BorderLayout(10, 5));
+        card.setBackground(bgColor);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY, 1),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        
+        JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setForeground(Color.WHITE);
+
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        valueLabel.setForeground(Color.WHITE);
+        valueLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Indicate clickability
+
+        return card;
+    }
+
+    // Method to add navigation to ProductFrame
+    private void addProductNavigation(JPanel card) {
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Ensure only authorized users can navigate to product frame
+                if (UserSession.hasAnyRole("ADMIN", "MANAGER", "STAFF")) {
+                    new ProductFrame().setVisible(true);
+                } else {
+                     JOptionPane.showMessageDialog(null, "You do not have permission to access the Products module.", "Permission Denied", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+    }
+
+    // Method to add navigation to SupplierFrame
+    private void addSupplierNavigation(JPanel card) {
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Ensure only authorized users can navigate to supplier frame
+                 if (UserSession.hasAnyRole("ADMIN", "MANAGER", "STAFF")) {
+                    new SupplierFrame().setVisible(true);
+                } else {
+                     JOptionPane.showMessageDialog(null, "You do not have permission to access the Suppliers module.", "Permission Denied", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Adds a generic click effect for non-navigational cards.
+     */
+    private void addFinancialCardListener(JPanel card, Color defaultColor) {
+        // [Existing implementation for card listener remains the same to fix previous error]
+         card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                card.setBackground(CLICK_EFFECT_COLOR); // Change color on press
+            }
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                // Restore original color
+                Color currentColor = defaultColor;
+                // Special handling for profit card as its color changes dynamically
+                if (card == profitCard && metrics != null) { 
+                    currentColor = metrics.getNetProfit() >= 0 ? PROFIT_COLOR : LOSS_COLOR;
+                }
+                card.setBackground(currentColor); 
+            }
+            // Add a simple hover effect for visual consistency
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (card.getBackground() != CLICK_EFFECT_COLOR) {
+                    card.setBackground(defaultColor.brighter());
+                }
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                 if (card.getBackground() != CLICK_EFFECT_COLOR) {
+                    card.setBackground(defaultColor);
+                }
+            }
+        });
+    }
+
+    // =================================================================
+    //                           DATA LOADING (UNCHANGED)
+    // =================================================================
+
+    private DashboardMetrics metrics; // Field to hold metrics for use in listeners
+
+    private void loadDashboardData() {
+        try {
+            metrics = controller.getMetrics(); // Assign to field
+            DecimalFormat currencyFormatter = new DecimalFormat("#,##0 RWF");
+
+            productCountLabel.setText(String.valueOf(metrics.getProductCount()));
+            supplierCountLabel.setText(String.valueOf(metrics.getSupplierCount()));
+            
+            // Low Stock
+            Color lowStockBg = metrics.getLowStockCount() > 0 ? LOSS_COLOR : SECONDARY_COLOR;
+            lowStockLabel.setText(String.valueOf(metrics.getLowStockCount()));
+            lowStockCard.setBackground(lowStockBg);
+            
+            salesTodayLabel.setText(currencyFormatter.format(metrics.getTotalSales()));
+            purchasesTodayLabel.setText(currencyFormatter.format(metrics.getTotalPurchases()));
+            
+            // Net Profit
+            Color profitBg = metrics.getNetProfit() >= 0 ? PROFIT_COLOR : LOSS_COLOR;
+            netProfitLabel.setText(currencyFormatter.format(metrics.getNetProfit()));
+            profitCard.setBackground(profitBg); // Set the correct dynamic color
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "A system error occurred while loading dashboard data: " + e.getMessage(), 
+                "System Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

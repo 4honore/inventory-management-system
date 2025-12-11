@@ -2,12 +2,13 @@ package controller;
 
 import dao.UserDao;
 import model.User;
+import model.UserSession; // <-- NEW IMPORT
 import javax.swing.JOptionPane;
 import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Enhanced Login Controller with comprehensive validations
+ * Enhanced Login Controller with comprehensive validations and Session Management
  * @author FRANK
  */
 public class LoginController {
@@ -26,7 +27,10 @@ public class LoginController {
     }
     
     /**
-     * Login user with validations
+     * Login user with validations and session management.
+     * @param username The username provided by the user.
+     * @param password The password provided by the user.
+     * @return true if login is successful and session is established, false otherwise.
      */
     public boolean login(String username, String password) {
         
@@ -48,207 +52,106 @@ public class LoginController {
             return false;
         }
         
-        // ===== TECHNICAL VALIDATION 1: Username format =====
-        if (!USERNAME_PATTERN.matcher(username.trim()).matches()) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid username format!\n" +
-                "Username must be 3-20 characters and contain only letters, numbers, and underscores.", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
+        // --- Database Authentication ---
+        
+        // Now calls UserDao.login() which returns User or null
+        User user = userDao.login(username, password);
+        
+        if (user != null) {
+            // Login successful. Establish User Session.
+            UserSession.login(user);
+            return true;
+        } else {
+            // Login failed (DAO already displayed error message)
             return false;
         }
-        
-        // ===== TECHNICAL VALIDATION 2: Password minimum length =====
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Password must be at least " + MIN_PASSWORD_LENGTH + " characters long!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        
-        // Attempt login
-        return userDao.login(username.trim(), password);
     }
-    
-    /**
-     * Register new user with comprehensive validations
-     */
+
+    // CREATE - Add user
     public void registerUser(String username, String password, String confirmPassword, String role) {
-        
-        // ===== BUSINESS VALIDATION 1: All fields required =====
-        if (username == null || username.trim().isEmpty()) {
+        // Validation 1: Username format
+        if (username == null || !USERNAME_PATTERN.matcher(username).matches()) {
             JOptionPane.showMessageDialog(null, 
-                "⚠️ Username is required!", 
+                "❌ Username must be 3-20 alphanumeric characters or underscores.", 
                 "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        if (password == null || password.trim().isEmpty()) {
+        // Validation 2: Password strength
+        if (password == null || !PASSWORD_PATTERN.matcher(password).matches()) {
             JOptionPane.showMessageDialog(null, 
-                "⚠️ Password is required!", 
+                "❌ Password must be at least 6 characters long.", 
                 "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        if (role == null || role.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Role is required!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // ===== BUSINESS VALIDATION 2: Password confirmation must match =====
+        // Validation 3: Password match
         if (!password.equals(confirmPassword)) {
             JOptionPane.showMessageDialog(null, 
-                "⚠️ Passwords do not match!", 
+                "❌ Passwords do not match!", 
                 "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        // ===== BUSINESS VALIDATION 3: Role must be valid =====
-        String roleUpper = role.trim().toUpperCase();
-        if (!roleUpper.equals("ADMIN") && !roleUpper.equals("MANAGER") && !roleUpper.equals("STAFF")) {
+        // Validation 4: Role
+        String roleUpper = role != null ? role.toUpperCase() : null;
+        if (roleUpper == null || (!roleUpper.equals("ADMIN") && !roleUpper.equals("MANAGER") && !roleUpper.equals("STAFF"))) {
             JOptionPane.showMessageDialog(null, 
-                "⚠️ Invalid role! Must be ADMIN, MANAGER, or STAFF.", 
+                "❌ Invalid role selected!", 
                 "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // ===== BUSINESS VALIDATION 4: Check for duplicate username =====
-        List<User> existingUsers = userDao.getAllUsers();
-        for (User u : existingUsers) {
-            if (u.getUsername().equalsIgnoreCase(username.trim())) {
-                JOptionPane.showMessageDialog(null, 
-                    "⚠️ Username already exists! Please choose another.", 
-                    "Duplicate Username", 
-                    JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-        }
-        
-        // ===== TECHNICAL VALIDATION 1: Username format =====
-        if (!USERNAME_PATTERN.matcher(username.trim()).matches()) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid username format!\n" +
-                "Username must be 3-20 characters and contain only letters, numbers, and underscores.", 
-                "Technical Validation Error", 
                 JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        // ===== TECHNICAL VALIDATION 2: Username length =====
-        if (username.trim().length() < MIN_USERNAME_LENGTH || 
-            username.trim().length() > MAX_USERNAME_LENGTH) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Username must be between " + MIN_USERNAME_LENGTH + 
-                " and " + MAX_USERNAME_LENGTH + " characters!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // ===== TECHNICAL VALIDATION 3: Password strength =====
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Password must be at least " + MIN_PASSWORD_LENGTH + " characters long!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // ===== TECHNICAL VALIDATION 4: Password complexity check =====
-        boolean hasLetter = password.matches(".*[a-zA-Z].*");
-        boolean hasDigit = password.matches(".*\\d.*");
-        
-        if (!hasLetter || !hasDigit) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Password must contain at least one letter and one number!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // ===== TECHNICAL VALIDATION 5: Role format validation =====
-        if (!role.trim().matches("^[A-Z]+$")) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Role must contain only uppercase letters!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // Create and save user
-        User newUser = new User();
-        newUser.setUsername(username.trim());
-        newUser.setPassword(password); // In production, hash the password!
-        newUser.setRole(roleUpper);
-        
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password); 
+        user.setRole(roleUpper);
+
         try {
-            userDao.addUser(newUser);
-            JOptionPane.showMessageDialog(null, 
-                "✅ User registered successfully!\n" +
-                "Username: " + username + "\n" +
-                "Role: " + roleUpper, 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
+            userDao.addUser(user);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Error registering user: " + e.getMessage(), 
+             JOptionPane.showMessageDialog(null, 
+                "❌ Error adding user: " + e.getMessage(), 
                 "Database Error", 
                 JOptionPane.ERROR_MESSAGE);
         }
     }
     
-    /**
-     * Update user with validations
-     */
+    // UPDATE - Update user
     public void updateUser(int userId, String username, String password, String role) {
         
-        // Technical validation for ID
         if (userId <= 0) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid user ID!", 
-                "Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "❌ Invalid user ID!", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Validation 1: Username format
+        if (username == null || !USERNAME_PATTERN.matcher(username).matches()) {
+            JOptionPane.showMessageDialog(null, "❌ Username must be 3-20 alphanumeric characters or underscores.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        // Apply same validations as registration
-        if (username == null || username.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Username is required!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
+        // Validation 2: Password strength
+        if (password == null || password.trim().isEmpty() || !PASSWORD_PATTERN.matcher(password).matches()) {
+             JOptionPane.showMessageDialog(null, "❌ Password must be at least 6 characters long.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        if (!USERNAME_PATTERN.matcher(username.trim()).matches()) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid username format!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
+        // Validation 3: Role
+        String roleUpper = role != null ? role.toUpperCase() : null;
+        if (roleUpper == null || (!roleUpper.equals("ADMIN") && !roleUpper.equals("MANAGER") && !roleUpper.equals("STAFF"))) {
+            JOptionPane.showMessageDialog(null, "❌ Invalid role selected!", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        String roleUpper = role.trim().toUpperCase();
-        if (!roleUpper.equals("ADMIN") && !roleUpper.equals("MANAGER") && !roleUpper.equals("STAFF")) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Invalid role!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
+
         User user = new User();
         user.setUserId(userId);
-        user.setUsername(username.trim());
-        user.setPassword(password);
+        user.setUsername(username);
+        user.setPassword(password); 
         user.setRole(roleUpper);
         
         try {
@@ -269,6 +172,7 @@ public class LoginController {
      * Delete user
      */
     public void deleteUser(int userId) {
+        
         if (userId <= 0) {
             JOptionPane.showMessageDialog(null, 
                 "❌ Invalid user ID!", 

@@ -16,7 +16,7 @@ import model.User;
  */
 public class UserDao {
 
-    // CREATE - Add User
+   // CREATE - Add User
     public void addUser(User user) {
         String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -46,12 +46,12 @@ public class UserDao {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                User u = new User();
-                u.setUserId(rs.getInt("user_id"));
-                u.setUsername(rs.getString("username"));
-                u.setPassword(rs.getString("password"));
-                u.setRole(rs.getString("role"));
-                users.add(u);
+                User user = new User();
+                user.setUserId(rs.getInt("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setPassword(rs.getString("password"));
+                user.setRole(rs.getString("role"));
+                users.add(user);
             }
 
         } catch (SQLException e) {
@@ -61,7 +61,7 @@ public class UserDao {
         return users;
     }
 
-    // UPDATE - Edit User
+    // UPDATE - Update existing user
     public void updateUser(User user) {
         String sql = "UPDATE users SET username=?, password=?, role=? WHERE user_id=?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -73,6 +73,7 @@ public class UserDao {
             pst.setInt(4, user.getUserId());
 
             int rows = pst.executeUpdate();
+
             if (rows > 0) {
                 JOptionPane.showMessageDialog(null, " User updated successfully!");
             } else {
@@ -84,7 +85,7 @@ public class UserDao {
         }
     }
 
-    // DELETE - Remove User
+    // DELETE - Delete user
     public void deleteUser(int userId) {
         String sql = "DELETE FROM users WHERE user_id=?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -104,9 +105,15 @@ public class UserDao {
         }
     }
 
-    // LOGIN - Verify credentials
-    public boolean login(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username=? AND password=?";
+    /**
+     * LOGGED-IN FIX: Changes return type from boolean to User to retrieve role.
+     * @param username The username to check.
+     * @param password The password to check.
+     * @return The User object if login is successful, or null otherwise.
+     */
+    public User login(String username, String password) {
+        // Only select necessary data (excluding password if possible, but role is mandatory)
+        String sql = "SELECT user_id, username, role FROM users WHERE username=? AND password=?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pst = conn.prepareStatement(sql)) {
 
@@ -115,17 +122,24 @@ public class UserDao {
 
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
+                    // Login successful, build and return the User object
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setUsername(rs.getString("username"));
+                    user.setRole(rs.getString("role"));
+                    // We don't need the password hash here
+                    
                     JOptionPane.showMessageDialog(null, " Login successful!");
-                    return true;
+                    return user;
                 } else {
                     JOptionPane.showMessageDialog(null, " Invalid username or password!");
-                    return false;
+                    return null;
                 }
             }
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, " Login error: " + e.getMessage());
-            return false;
+            return null;
         }
     }
 }
