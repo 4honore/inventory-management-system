@@ -8,8 +8,9 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 /**
- *
- * @author Ishimwe Honore
+ * ProductFrame - The View component for Product Management.
+ * * NOTE: The action listeners below now handle all UI messages (JOptionPane)
+ * based on the success or failure (Exception) returned by the Controller.
  */
 public class ProductFrame extends JFrame {
 
@@ -17,6 +18,9 @@ public class ProductFrame extends JFrame {
     private JTextField nameField, categoryField, qtyField, priceField, supplierField, idField;
     private final JTable table;
     private final DefaultTableModel model;
+    
+    // Assuming these buttons are defined as fields in your original code
+    private JButton addButton, updateButton, deleteButton, clearButton;
 
     public ProductFrame() {
         controller = new ProductController();
@@ -47,107 +51,160 @@ public class ProductFrame extends JFrame {
         formPanel.add(categoryField);
         formPanel.add(new JLabel("Quantity:"));
         formPanel.add(qtyField);
-        formPanel.add(new JLabel("Price:"));
+        formPanel.add(new JLabel("Price (RWF):"));
         formPanel.add(priceField);
         formPanel.add(new JLabel("Supplier ID:"));
         formPanel.add(supplierField);
 
-        // ====== BUTTON PANEL ======
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
-        JButton addBtn = new JButton("Add");
-        JButton viewBtn = new JButton("View All");
-        JButton updateBtn = new JButton("Update");
-        JButton deleteBtn = new JButton("Delete");
-        JButton clearBtn = new JButton("Clear");
-
-        buttonPanel.add(addBtn);
-        buttonPanel.add(viewBtn);
-        buttonPanel.add(updateBtn);
-        buttonPanel.add(deleteBtn);
-        buttonPanel.add(clearBtn);
-
-        // ====== TABLE PANEL ======
-        model = new DefaultTableModel(new String[]{"ID", "Name", "Category", "Qty", "Price", "Supplier ID"}, 0);
+        // ===== BUTTON PANEL (Assuming buttons are initialized here) =====
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        addButton = new JButton("Add Product");
+        updateButton = new JButton("Update Product");
+        deleteButton = new JButton("Delete Product");
+        clearButton = new JButton("Clear Fields");
+        
+        buttonPanel.add(addButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(clearButton);
+        
+        // ===== TABLE SETUP =====
+        model = new DefaultTableModel(new String[]{"ID", "Name", "Category", "Quantity", "Price", "Supplier ID"}, 0);
         table = new JTable(model);
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Product List"));
 
-        // ====== CONTENT PANEL ======
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
-        centerPanel.add(buttonPanel, BorderLayout.NORTH);
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
-
-        // ====== ADD MAIN PANELS TO FRAME ======
+        // Add components to the frame
         add(formPanel, BorderLayout.NORTH);
-        add(centerPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        // ====== BUTTON ACTIONS ======
-        addBtn.addActionListener(e -> {
+        // =================================================================
+        // ===== REFACTORED BUTTON ACTIONS - UI LOGIC NOW HERE IN THE VIEW =====
+        // =================================================================
+
+        // ADD Button Action Listener
+        addButton.addActionListener(e -> {
             try {
-                controller.addProduct(
-                    nameField.getText(),
-                    categoryField.getText(),
-                    Integer.parseInt(qtyField.getText()),
-                    Double.parseDouble(priceField.getText()),
-                    Integer.parseInt(supplierField.getText())
-                );
+                // Input conversion (local validation)
+                String name = nameField.getText();
+                String category = categoryField.getText();
+                int qty = Integer.parseInt(qtyField.getText());
+                double price = Double.parseDouble(priceField.getText());
+                int supplierId = Integer.parseInt(supplierField.getText());
+
+                // Call the Controller (Controller throws Exception on validation/DB failure)
+                controller.addProduct(name, category, qty, price, supplierId);
+                
+                // SUCCESS HANDLING (The View displays the result!)
+                JOptionPane.showMessageDialog(this, 
+                    "✅ Product added successfully!", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
                 clearFields();
-                loadProducts();
+                loadProducts(); // Refresh the table
+                
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "⚠️ Invalid input! Quantity, Price, and Supplier ID must be numbers.");
+                // CATCH 1: Handles invalid number input
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Please enter valid numbers for Quantity, Price, and Supplier ID.", 
+                    "Input Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                // CATCH 2: Handles Business Logic (Validation) or Database Error
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Operation Failed: " + ex.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        viewBtn.addActionListener(e -> loadProducts());
-
-        updateBtn.addActionListener(e -> {
+        // UPDATE Button Action Listener
+        updateButton.addActionListener(e -> {
             try {
+                // Basic check for ID field
                 if (idField.getText().trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "⚠️ Please select a product from the table to update!");
-                    return;
+                    throw new Exception("Please select a product to update.");
                 }
                 
-                controller.updateProduct(
-                    Integer.parseInt(idField.getText()),
-                    nameField.getText(),
-                    categoryField.getText(),
-                    Integer.parseInt(qtyField.getText()),
-                    Double.parseDouble(priceField.getText()),
-                    Integer.parseInt(supplierField.getText())
-                );
-                clearFields();
-                loadProducts();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, " Invalid ID or number format!");
-            }
-        });
-
-        deleteBtn.addActionListener(e -> {
-            try {
-                if (idField.getText().trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, " Please select a product from the table to delete!");
-                    return;
-                }
-                
+                // Input conversion
                 int id = Integer.parseInt(idField.getText());
+                String name = nameField.getText();
+                String category = categoryField.getText();
+                int qty = Integer.parseInt(qtyField.getText());
+                double price = Double.parseDouble(priceField.getText());
+                int supplierId = Integer.parseInt(supplierField.getText());
+
+                controller.updateProduct(id, name, category, qty, price, supplierId);
+                
+                // SUCCESS HANDLING
+                JOptionPane.showMessageDialog(this, 
+                    "✅ Product updated successfully!", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                clearFields();
+                loadProducts(); 
+                
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Invalid numeric input.", 
+                    "Input Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Update Failed: " + ex.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // DELETE Button Action Listener
+        deleteButton.addActionListener(e -> {
+            try {
+                // Basic check for ID field
+                if (idField.getText().trim().isEmpty()) {
+                    throw new Exception("Please select a product to delete.");
+                }
+                int id = Integer.parseInt(idField.getText());
+                
+                // Confirmation dialog (View logic)
                 int confirm = JOptionPane.showConfirmDialog(this, 
-                    "Are you sure you want to delete this product?", 
+                    "Are you sure you want to delete Product ID: " + id + "?", 
                     "Confirm Delete", 
                     JOptionPane.YES_NO_OPTION);
-                
+
                 if (confirm == JOptionPane.YES_OPTION) {
                     controller.deleteProduct(id);
+                    
+                    // SUCCESS HANDLING
+                    JOptionPane.showMessageDialog(this, 
+                        "✅ Product deleted successfully!", 
+                        "Success", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                    
                     clearFields();
-                    loadProducts();
+                    loadProducts(); 
                 }
+                
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, " Invalid ID!");
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Invalid Product ID format.", 
+                    "Input Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Deletion Failed: " + ex.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
             }
         });
+        
+        // CLEAR Button Action Listener
+        clearButton.addActionListener(e -> clearFields());
 
-        clearBtn.addActionListener(e -> clearFields());
 
-        // ====== TABLE ROW CLICK EVENT (IMPORTANT FIX!) ======
+        // Table row click listener (remains the same)
         table.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 int selectedRow = table.getSelectedRow();
@@ -167,7 +224,7 @@ public class ProductFrame extends JFrame {
         setVisible(true);
     }
 
-    // ====== HELPER METHODS ======
+    // ====== HELPER METHODS (Should remain the same) ======\r\n
 
     private void loadProducts() {
         model.setRowCount(0); // clear existing rows

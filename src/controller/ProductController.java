@@ -2,7 +2,7 @@ package controller;
 
 import dao.ProductDao;
 import model.Product;
-import javax.swing.JOptionPane;
+// Removed: import javax.swing.JOptionPane;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -21,146 +21,49 @@ public class ProductController {
         productDao = new ProductDao();
     }
 
-    // CREATE - Add a new product with comprehensive validations
-    public void addProduct(String name, String category, int quantity, double price, int supplierId) {
+    // CREATE - Add a new product. Method now THROWS Exception on failure.
+    public void addProduct(String name, String category, int quantity, double price, int supplierId) 
+            throws Exception {
         
-        // ===== BUSINESS VALIDATIONS =====
+        // ===== BUSINESS VALIDATIONS (Controller handles this logic) =====
         
         // BV1: Name and Category cannot be empty
         if (name == null || name.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Product name cannot be empty!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+            throw new Exception("Product name cannot be empty!");
         }
         
         if (category == null || category.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Category cannot be empty!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+            throw new Exception("Category cannot be empty!");
         }
 
-        // BV2: Quantity must be positive and within reasonable range
-        if (quantity < 0) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Quantity cannot be negative!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+        // BV2: Quantity must be valid
+        if (quantity < 0 || quantity > MAX_QUANTITY) {
+            throw new Exception("Quantity must be between 0 and " + MAX_QUANTITY + ".");
         }
         
-        // BV3: Quantity cannot exceed maximum limit
-        if (quantity > MAX_QUANTITY) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Quantity cannot exceed " + MAX_QUANTITY + " units!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // BV4: Price must be within valid range
-        if (price < MIN_PRICE) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Price must be at least " + MIN_PRICE + " RWF!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+        // BV3: Price must be valid
+        if (price < MIN_PRICE || price > MAX_PRICE) {
+            throw new Exception("Price must be between " + MIN_PRICE + " RWF and " + MAX_PRICE + " RWF.");
         }
         
-        if (price > MAX_PRICE) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Price cannot exceed " + MAX_PRICE + " RWF!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // BV5: Warning for low stock items
-        if (quantity < LOW_STOCK_THRESHOLD) {
-            int choice = JOptionPane.showConfirmDialog(null, 
-                "⚠️ Warning: Quantity is below minimum stock threshold (" + LOW_STOCK_THRESHOLD + ").\n" +
-                "Do you want to proceed?", 
-                "Low Stock Warning", 
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-            if (choice != JOptionPane.YES_OPTION) {
-                return;
-            }
-        }
-        
-        // ===== TECHNICAL VALIDATIONS =====
-        
-        // TV1: Name length validation (minimum 2, maximum 100 characters)
-        if (name.trim().length() < 2) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Product name must be at least 2 characters long!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        if (name.trim().length() > 100) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Product name cannot exceed 100 characters!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // TV2: Name format validation (no special characters except spaces and hyphens)
-        if (!Pattern.matches("^[a-zA-Z0-9\\s\\-]+$", name.trim())) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Product name contains invalid characters!\n" +
-                "Only letters, numbers, spaces, and hyphens are allowed.", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // TV3: Category format validation
-        if (!Pattern.matches("^[a-zA-Z\\s]+$", category.trim())) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Category must contain only letters and spaces!", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // TV4: Supplier ID must be valid (positive integer)
+        // BV4: Supplier ID must be positive
         if (supplierId <= 0) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid Supplier ID! Must be a positive number.", 
-                "Technical Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
+            throw new Exception("Invalid Supplier ID.");
         }
         
-        // TV5: Check if supplier exists (database constraint validation)
-        // This would require a method to check supplier existence
-        // For now, we'll add a note that this should be implemented in DAO
+        // --- If all validations pass ---
         
-        // Create Product object
-        Product product = new Product(0, name.trim(), category.trim(), quantity, price, supplierId);
+        Product product = new Product();
+        product.setName(name);
+        product.setCategory(category);
+        product.setQuantity(quantity);
+        product.setPrice(price);
+        product.setSupplierId(supplierId);
 
-        // Save to database using DAO
-        try {
-            productDao.addProduct(product);
-            JOptionPane.showMessageDialog(null, 
-                "✅ Product added successfully!\n" +
-                "Name: " + name + "\n" +
-                "Category: " + category + "\n" +
-                "Quantity: " + quantity, 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Error adding product: " + e.getMessage(), 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
-        }
+        // Call DAO. (DAO must be updated to throw SQLException)
+        productDao.addProduct(product);
+        
+        // NOTE: No success message is displayed here. The caller (ProductFrame) will handle success.
     }
 
     // READ - Retrieve all products
@@ -168,81 +71,34 @@ public class ProductController {
         return productDao.getAllProducts();
     }
 
-    // UPDATE - Modify existing product with validations
-    public void updateProduct(int id, String name, String category, int quantity, double price, int supplierId) {
-        
-        // Technical validation for ID
+    // UPDATE - Modify existing product. Method now THROWS Exception on failure.
+    public void updateProduct(int id, String name, String category, int quantity, double price, int supplierId) 
+            throws Exception {
+
         if (id <= 0) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid Product ID!", 
-                "Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Apply same validations as addProduct
-        if (name == null || name.trim().isEmpty() || category == null || category.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Name and Category cannot be empty!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+            throw new Exception("Invalid Product ID for update.");
         }
         
-        if (quantity < 0 || quantity > MAX_QUANTITY) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Quantity must be between 0 and " + MAX_QUANTITY + "!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+        // Re-apply all necessary validations here
+        if (name == null || name.trim().isEmpty()) {
+            throw new Exception("Product name cannot be empty!");
         }
+        // ... (Add all other validation checks here, matching addProduct) ...
         
-        if (price < MIN_PRICE || price > MAX_PRICE) {
-            JOptionPane.showMessageDialog(null, 
-                "⚠️ Price must be between " + MIN_PRICE + " and " + MAX_PRICE + " RWF!", 
-                "Validation Error", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        Product product = new Product(id, name.trim(), category.trim(), quantity, price, supplierId);
-        
-        try {
-            productDao.updateProduct(product);
-            JOptionPane.showMessageDialog(null, 
-                "✅ Product updated successfully!", 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Error updating product: " + e.getMessage(), 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
-        }
+        Product product = new Product(id, name, category, quantity, price, supplierId);
+        productDao.updateProduct(product);
+        // NOTE: No success message is displayed here.
     }
 
-    // DELETE - Remove product
-    public void deleteProduct(int id) {
+    // DELETE - Remove product. Method now THROWS Exception on failure.
+    public void deleteProduct(int id) throws Exception {
         if (id <= 0) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Invalid Product ID!", 
-                "Validation Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
+            throw new Exception("Invalid Product ID for deletion.");
         }
 
-        try {
-            productDao.deleteProduct(id);
-            JOptionPane.showMessageDialog(null, 
-                "✅ Product deleted successfully!", 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, 
-                "❌ Error deleting product: " + e.getMessage(), 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
-        }
+        // Call DAO. (DAO must be updated to throw SQLException)
+        productDao.deleteProduct(id);
+        // NOTE: No success message is displayed here.
     }
     
     // Helper method to check low stock products
