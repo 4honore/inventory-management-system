@@ -4,7 +4,22 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/DashboardFrame.java</file>
-            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/dashboard.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/TransactionFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/LoginFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/dao/UserDao.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/ReportFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/main/main.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/controller/LoginController.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/controller/DashboardController.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/UserManagementFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/model/Transaction.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/model/UserSession.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/dao/ProductDao.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/SupplierFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/controller/TransactionController.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/model/DashboardMetrics.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/view/ProductFrame.java</file>
+            <file>file:/D:/AUCA/NetBeansProjects/InventoryManagmentSystem/src/controller/ProductController.java</file>
         </group>
     </open-files>
 </project-private>
