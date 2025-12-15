@@ -23,6 +23,7 @@ public class LoginFrame extends JFrame {
     private static final Color BUTTON_HOVER_COLOR = new Color(46, 204, 113);
 
     public LoginFrame() {
+        System.out.println("DEBUG: LoginFrame constructor started."); // <-- DEBUG POINT 1
         controller = new LoginController();
         
         setTitle("Inventory Management System - Login");
@@ -35,35 +36,36 @@ public class LoginFrame extends JFrame {
         UserSession.logout();
 
         // ===== 1. LEFT PANEL (Branding/Image) =====
+        System.out.println("DEBUG: Creating Branding Panel."); // <-- DEBUG POINT 2
         JPanel leftPanel = createBrandingPanel();
         add(leftPanel, BorderLayout.WEST);
 
         // ===== 2. RIGHT PANEL (Login Form) =====
+        System.out.println("DEBUG: Creating Login Form Panel."); // <-- DEBUG POINT 3
         JPanel rightPanel = createLoginFormPanel();
         add(rightPanel, BorderLayout.CENTER);
         
+        System.out.println("DEBUG: Calling setVisible(true)."); // <-- DEBUG POINT 4
         setVisible(true);
+        System.out.println("DEBUG: LoginFrame constructor finished successfully."); // <-- DEBUG POINT 5
     }
     
+    // ... (rest of createBrandingPanel, createLoginFormPanel, createStyledButton methods are unchanged)
+    
     // =================================================================
-    //                    UI HELPER METHODS
+    //                    UI HELPER METHODS (Unchanged)
     // =================================================================
     
-    /**
-     * Creates the visually appealing left panel for branding and image.
-     */
     private JPanel createBrandingPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(PRIMARY_COLOR);
         panel.setPreferredSize(new Dimension(300, 500));
         
         // Add a visual element (Image/Logo Placeholder)
+        // If the crash happens here, it's likely due to Font initialization
         JLabel logoLabel = new JLabel("INVENTORY HUB", SwingConstants.CENTER);
         logoLabel.setFont(new Font("Arial", Font.BOLD, 28));
         logoLabel.setForeground(Color.WHITE);
-        
-        // This is where you would place an image if you had one. 
-        // Example: logoLabel.setIcon(new ImageIcon(getClass().getResource("/images/logo.png")));
         
         JLabel sloganLabel = new JLabel("Streamlined Stock Control", SwingConstants.CENTER);
         sloganLabel.setFont(new Font("Arial", Font.PLAIN, 16));
@@ -77,15 +79,12 @@ public class LoginFrame extends JFrame {
         gbc.insets = new Insets(10, 0, 0, 0);
         panel.add(sloganLabel, gbc);
 
-        // 
-
         return panel;
     }
 
-    /**
-     * Creates the right panel containing the login form.
-     */
     private JPanel createLoginFormPanel() {
+        // ... (body of this method is unchanged)
+        
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
@@ -100,8 +99,8 @@ public class LoginFrame extends JFrame {
         JPanel formLayoutPanel = new JPanel(new GridBagLayout());
         formLayoutPanel.setBackground(FORM_PANEL_COLOR);
         formLayoutPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1),
-            BorderFactory.createEmptyBorder(30, 30, 30, 30)
+             BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1),
+             BorderFactory.createEmptyBorder(30, 30, 30, 30)
         ));
         
         usernameField = new JTextField(20);
@@ -158,10 +157,9 @@ public class LoginFrame extends JFrame {
         return panel;
     }
     
-    /**
-     * Creates a JButton with professional styling and hover effect.
-     */
     private JButton createStyledButton(String text, Color bgColor, Color hoverColor) {
+        // ... (body of this method is unchanged)
+        
         JButton button = new JButton(text);
         button.setFont(new Font("Arial", Font.BOLD, 14));
         button.setForeground(Color.WHITE);
@@ -181,13 +179,8 @@ public class LoginFrame extends JFrame {
         return button;
     }
     
-    // =================================================================
-    //                       LOGIC IMPLEMENTATION
-    // =================================================================
-    
-    /**
-     * Handles the login process using the LoginController and navigates upon success.
-     */
+    // ... (rest of attemptLogin and RegistrationDialog methods are unchanged)
+
     private void attemptLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -204,14 +197,7 @@ public class LoginFrame extends JFrame {
             passwordField.setText(""); // Clear password field on failure
         }
     }
-
-    // =================================================================
-    //                    REGISTRATION DIALOG
-    // =================================================================
     
-    /**
-     * Inner class for the Registration pop-up dialog.
-     */
     private class RegistrationDialog extends JDialog {
         
         private final JTextField regUsernameField;
@@ -291,14 +277,21 @@ public class LoginFrame extends JFrame {
     
     // ===== MAIN METHOD - Entry Point =====
     public static void main(String[] args) {
-        // Set look and feel
+        System.out.println("--- Starting LoginFrame Main Method ---"); // <-- DEBUG POINT A
+        
+        // Use the default cross-platform L&F instead of the system L&F,
+        // which often fails in non-native environments like Docker/Linux.
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            System.out.println("DEBUG: Set UIManager L&F successfully."); // <-- DEBUG POINT B
         } catch (Exception e) {
+            System.err.println("ERROR: Failed to set Look and Feel. Starting anyway.");
             e.printStackTrace();
+            // Do not crash the application if L&F fails.
         }
         
         // Start application with login
+        System.out.println("DEBUG: Calling SwingUtilities.invokeLater."); // <-- DEBUG POINT C
         SwingUtilities.invokeLater(() -> new LoginFrame());
     }
 }

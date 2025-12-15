@@ -16,10 +16,10 @@ import view.LoginFrame;
  */
 public class main {
      public static void main(String[] args) {
-        //java.awt.EventQueue.invokeLater(() -> new ProductFrame().setVisible(true));
-        //java.awt.EventQueue.invokeLater(() -> new SupplierFrame().setVisible(true));
-        //java.awt.EventQueue.invokeLater(() -> new TransactionFrame().setVisible(true));
-        //java.awt.EventQueue.invokeLater(() -> new DashboardFrame().setVisible(true));
-        java.awt.EventQueue.invokeLater(() -> new LoginFrame().setVisible(true));
-    }
+          // ADD THIS LINE
+          System.out.println("--- Starting Inventory Management System GUI ---"); 
+          java.awt.EventQueue.invokeLater(() -> {
+              new LoginFrame().setVisible(true);
+          });
+     }
 }
