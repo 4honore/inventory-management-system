@@ -39,7 +39,7 @@ public class DashboardFrame extends JFrame {
 
         // Security Check: If no user is logged in, redirect to login
         if (UserSession.getCurrentUser() == null) {
-            JOptionPane.showMessageDialog(null, "Session expired or unauthorized access. Please log in.", "Authorization Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Session expired or unauthorized access. Please log in..", "Authorization Error", JOptionPane.ERROR_MESSAGE);
             new LoginFrame().setVisible(true);
             return; // Exit constructor to prevent frame from showing
         }
