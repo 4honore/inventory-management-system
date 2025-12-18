@@ -125,10 +125,10 @@ InventoryManagmentSystem/
 
 
 **Login Screen**
-!Login Screen
+![login page.JPG](<login page.JPG>)
 
 **Main Dashboard**
-!Main Dashboard
+![!Main Dashboard](<dashboard page.JPG>)
 
 **Product Management**
-!Product Management
+![!Product Management](<product management page.JPG>)
