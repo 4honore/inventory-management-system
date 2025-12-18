@@ -132,3 +132,16 @@ InventoryManagmentSystem/
 
 **Product Management**
 ![!Product Management](<product management page.JPG>)
+
+
+###UML DIAGRAMS
+
+**SEQUENCE DIAGRAM**
+![alt text](<sequence diagram.JPG>)
+
+**ACTIVITY DIAGRAM**
+
+![alt text](<activity diagram.png>)
+
+**DATA FLOW DIAGRAM**
+![alt text](<data-flow diagram.png>)
